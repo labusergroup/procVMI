@@ -94,6 +94,8 @@ else
     %     Frag = uigetfile('*.txt');
     %     Coord = load(varargin{1});
 end
+
+flag_plot = 0; % set to 1 to make plots, otherwise no plots
  
 %% (2) Construct Abel inversion matrix, cf Eq. (2.3) in Arthur's thesis.
 % Set up a series of transformation matrices, containing weights distributions.
@@ -104,9 +106,9 @@ end
 % between projected pixel values, 'Proj(y,x)', and ring densities, 'Ring(y,x)'.
 % Proj(NumRing,y) = Area(NumRing,y,k)*Ring(NumRing,k), summed over k>=y.
 % Ring(NumRing,y) = Weight(NumRing,y,k)*Proj(NumRing,k), summed over k<=y.
-% 'Area' and 'Weight' are pre-defined matrix-valued functions of NumRing st. Area*Weight = 1.
+% 'Area' and 'Weight' are pre-define matrix-valued functions of NumRing st. Area*Weight = 1.
 
-% Define 'Area' and its inverse 'Weight' in one structure array 'Distr':
+% Here to define 'Area' and its inverse 'Weight' in one structure array 'Distr':
 SizeFactor = 1; %refinement for better resolution
 Size = RadiusMax*SizeFactor; %size of 'Distr' 
 Distr = struct('Area',{},'Weight',{});
@@ -140,7 +142,8 @@ if Lattice_Centered == 0     % pixel-centered
         Distr(NumRing).Weight = inv(Distr(NumRing).Area);
     end
 end
-%% (3) Invert the image
+%%
+% inversion options:image input or coordinate input
 
 % Image input
 if isImg == 1  
@@ -191,7 +194,7 @@ if isImg == 1
 end
 
 
-% coord input, NOT IN USE
+% coord input
 if isImg == 0
     Dim = DimOrig*SizeFactor;
     XRange = XRange*SizeFactor; %x max
@@ -267,4 +270,62 @@ if isImg == 0
     end
 end
 
+%%
+% plots
+
+% PtoE = 0.0887;
+% PtoE = 0.0074/600*800; % closer focus, since 2014-09-19, 0.0074 for -600/-420
+if flag_plot == 1
+    figure,imagesc(AngIntegrated); title('cross section');
+    figure,imagesc(Ring); title('Ring');
+    
+    %%
+    % lineout
+    lnt(:,:) = radial_lineoutVer3P(AngIntegrated,[yc xc],10);
+    figure
+    % plot(PtoE*(1:x).^2, squeeze(lnt(3,:)+lnt(8,:)));
+    x=size(lnt(3,:),2);
+    plot(PtoE*((1:x)-0.5).^2, squeeze(lnt(3,1:x)+lnt(8,1:x))/(2*(PtoE))./((1:x)-0.5)/max((squeeze(lnt(3,50:x)+lnt(8,50:x)))/(2*(PtoE))./((50:x)-0.5)));
+%     
+%     
+%     
+%     % project and compare difference
+%     Proj = zeros(DimOrig(1),DimOrig(2));
+%     if Lattice_Centered == 1
+%         %lattice centered
+%         for x = 0:XRange %x and y are distance here
+%             NumRing = round((RadiusMax^2-x^2)^.5);
+%             Proj(yc:(yc+NumRing-1),x+xc) = Distr(NumRing).Area*Ring(yc:(yc+NumRing-1),x+xc);
+%             Proj(yc-1:-1:(yc-NumRing),x+xc) = Proj(yc:(yc+NumRing-1),x+xc);
+%             Proj((yc-NumRing):(yc+NumRing-1),-x+xc-1) = Proj((yc-NumRing):(yc+NumRing-1),x+xc);
+%         end
+%     end
+%     if Lattice_Centered == 0
+%         %pixel-centered
+%         for x = 0:XRange %x and y are distance here
+%             NumRing = round((RadiusMax^2-x^2)^.5);
+%             Proj(yc:(yc+NumRing-1),x+xc) = Distr(NumRing).Area*Ring(yc:(yc+NumRing-1),x+xc);
+%             Proj(yc:-1:(yc-NumRing+1),x+xc) = Proj(yc:(yc+NumRing-1),x+xc);
+%             Proj((yc-NumRing+1):(yc+NumRing-1),-x+xc) = Proj((yc-NumRing+1):(yc+NumRing-1),x+xc);
+%         end
+%     end
+%     if isImg == 1
+%         Diff = ImageOrig - Proj;
+%         figure
+%         imagesc(Diff);
+%         title('difference');
+%     end
+%     figure
+%     imagesc(Proj); title('projection')
+% end
+% 
+% % if flag_plot == 1
+% %     lnt(:,:) = radial_lineoutVer3P(AngIntegrated,[yc xc],10);
+% %     plot(PtoE*(1:x).^2, squeeze(lnt(3,:)+lnt(8,:)));
+% %     x=size(lnt(3,:),2);
+% %     plot(PtoE*((1:x)-0.5).^2, squeeze(lnt(3,1:x)+lnt(8,1:x))/(2*(PtoE))./((1:x)-0.5)/max((squeeze(lnt(3,50:x)+lnt(8,50:x)))/(2*(PtoE))./((50:x)-0.5)));
+% % Dominik's
+% %     lnt(:,:) = radial_lineoutVer3P(AngIntegrated,[yc xc],1);
+% % end
+% % toc
 end
